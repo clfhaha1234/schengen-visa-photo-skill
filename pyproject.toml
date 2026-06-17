@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "schengen-visa-photo-skill"
+version = "0.1.0"
+description = "CLI and AI skill for preparing Schengen (ICAO) visa photos with landmark-based crop verification."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "mediapipe>=0.10.20",
+  "numpy>=1.26",
+  "opencv-python>=4.9",
+  "pillow>=10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+schengen-visa-photo = "schengen_visa_photo_skill.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
