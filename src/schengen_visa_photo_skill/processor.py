@@ -93,7 +93,7 @@ def plan_crop_from_geometry(
     crop_top = crown_y - (target_top_margin_px - options.nudge_y_px) / scale
     priority_notes: list[str] = []
 
-    if options.prioritize_eye_position and eye_y is not None:
+    if options.prioritize_eye_position and spec.enforce_eye_band and eye_y is not None:
         eye_lo, eye_hi = spec.eye_from_bottom_px
         eye_from_bottom = spec.output_height_px - round((eye_y - crop_top) * scale)
         if eye_from_bottom < eye_lo or eye_from_bottom > eye_hi:
@@ -301,7 +301,7 @@ def write_diagnostic(
     canvas[:, : spec.output_width_px] = photo
     cv2.line(canvas, (spec.output_width_px + gap // 2, 0), (spec.output_width_px + gap // 2, spec.output_height_px), (220, 220, 220), 1)
     x0 = spec.output_width_px + gap
-    draw_plain_text(canvas, "Schengen visa photo diagnostics", (x0, 28), scale=0.46)
+    draw_plain_text(canvas, f"{spec.name} visa photo diagnostics", (x0, 28), scale=0.46)
     rows = [
         ("canvas", f"{spec.output_width_px}x{spec.output_height_px}px", "exact", checks.get("output_size_ok")),
         ("head height", f"{plan.estimated_head_height_px}px", f"req {head_height_range} (70-80%)", checks.get("head_height_ok")),
@@ -359,7 +359,10 @@ def process_photo(
     checks = check_plan(plan, jpeg_size, spec)
     eye_center_y, eye_from_bottom, inter_eye = estimate_eye_metrics(landmarks, plan.crop_box_source, plan.scale, spec)
     eye_lo, eye_hi = spec.eye_from_bottom_px
-    checks["eye_position_ok"] = eye_from_bottom is not None and eye_lo <= eye_from_bottom <= eye_hi
+    eye_in_band = eye_from_bottom is not None and eye_lo <= eye_from_bottom <= eye_hi
+    # When the standard does not specify an eye line (e.g. Japan), the measured
+    # position is reported but never gates pass/fail or overrides the top margin.
+    checks["eye_position_ok"] = eye_in_band if spec.enforce_eye_band else True
     checks["inter_eye_ok"] = inter_eye is not None and inter_eye >= spec.inter_eye_min_px
     report = ProcessReport(
         input=str(input_path),
@@ -386,6 +389,15 @@ def process_photo(
             "The CLI does not replace or recolor the background; the source should already be a plain light-grey or white background per Schengen/ICAO rules.",
             "Neutral expression, mouth closed, eyes open and unobstructed, and no head covering (except for religious reasons) must be verified visually.",
             "Compliance remains subject to consulate, VFS/embassy, and online-system review.",
+            *(
+                []
+                if spec.enforce_eye_band
+                else [
+                    f"{spec.name} specifies head size and top clearance but no eye-line "
+                    "position; eye_from_bottom is reported for information only and the "
+                    "authoritative top-margin placement is preserved."
+                ]
+            ),
             *plan.priority_notes,
         ],
     )
