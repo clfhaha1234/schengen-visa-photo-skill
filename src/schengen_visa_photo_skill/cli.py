@@ -7,11 +7,14 @@ from pathlib import Path
 
 from .landmarks import DEFAULT_MODEL_URL
 from .processor import CropOptions, process_photo
+from .requirements import SPECS
+from .sheet import PAPER_SIZES_MM
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Prepare a Schengen visa photo crop and verification report.")
+    parser = argparse.ArgumentParser(description="Prepare a Schengen or Japan visa photo crop and verification report.")
     parser.add_argument("input", type=Path, help="Input portrait image")
+    parser.add_argument("--country", choices=sorted(SPECS), default="schengen", help="Target standard: schengen (35x45mm) or japan (45x45mm square)")
     parser.add_argument("--mode", choices=["execute", "diagnostic"], default="execute", help="execute returns non-zero on failed checks; diagnostic always exits 0 after writing artifacts")
     parser.add_argument("--output", type=Path, required=True, help="Output JPEG path")
     parser.add_argument("--report", type=Path, help="Optional JSON report path")
@@ -24,6 +27,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--nudge-x-px", type=float, default=0.0, help="Positive values move the subject right in output pixels")
     parser.add_argument("--nudge-y-px", type=float, default=0.0, help="Positive values move the subject down in output pixels")
     parser.add_argument("--no-prioritize-eye-position", action="store_true", help="Disable the ICAO eye-band priority adjustment")
+    parser.add_argument("--sheet", type=Path, help="Also write a print sheet (copies of the photo tiled onto photo paper for lab/CVS printing)")
+    parser.add_argument("--sheet-paper", choices=sorted(PAPER_SIZES_MM), default="4x6", help="Print-sheet paper size (default 4x6 inch / 10x15 cm)")
+    parser.add_argument("--sheet-gap-mm", type=float, default=2.0, help="Gap between photos on the print sheet, in millimeters")
     return parser
 
 
@@ -36,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
         diagnostic_path=args.diagnostic,
         model_path=args.model_path,
         model_url=args.model_url,
+        spec=SPECS[args.country],
         crop_options=CropOptions(
             target_head_height_px=args.target_head_height_px,
             target_top_margin_px=args.target_top_margin_px,
@@ -44,6 +51,9 @@ def main(argv: list[str] | None = None) -> int:
             nudge_y_px=args.nudge_y_px,
             prioritize_eye_position=not args.no_prioritize_eye_position,
         ),
+        sheet_path=args.sheet,
+        sheet_paper=args.sheet_paper,
+        sheet_gap_mm=args.sheet_gap_mm,
     )
     print(json.dumps(asdict(report), indent=2, ensure_ascii=False))
     if args.mode == "diagnostic":

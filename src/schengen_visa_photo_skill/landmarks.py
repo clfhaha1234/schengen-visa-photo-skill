@@ -81,25 +81,29 @@ def estimate_face_geometry(points: np.ndarray, crown_extension_ratio: float = 0.
     )
 
 
-def estimate_background_color(arr: np.ndarray, corner_px: int = 12) -> np.ndarray:
-    """Estimate the plain-background color by sampling the four image corners.
+def estimate_background_color(arr: np.ndarray, border_px: int = 12) -> np.ndarray:
+    """Estimate the plain-background color from regions that are reliably
+    background in a head-and-shoulders portrait.
 
-    Schengen photos allow a plain light-grey or off-white background, not only
-    pure white. Sampling the corners lets the silhouette mask adapt to the real
-    background tone instead of assuming a fixed white threshold.
+    The subject is centered with the head near the top and the shoulders
+    widening toward the bottom, so the bottom corners frequently contain skin
+    or clothing rather than background; sampling them biases the estimate (and
+    the resulting pad fill) toward a skin tone. Instead, sample the top edge and
+    the upper halves of the left and right edges, which are background in a
+    standard portrait. The median is robust to the minority of hair pixels that
+    may intrude at the top center, and adapts to white or light-grey alike.
     """
     h, w = arr.shape[:2]
-    cs = max(4, min(corner_px, h // 4, w // 4))
-    corners = np.concatenate(
+    bw = max(4, min(border_px, h // 4, w // 4))
+    samples = np.concatenate(
         [
-            arr[:cs, :cs].reshape(-1, 3),
-            arr[:cs, -cs:].reshape(-1, 3),
-            arr[-cs:, :cs].reshape(-1, 3),
-            arr[-cs:, -cs:].reshape(-1, 3),
+            arr[:bw, :].reshape(-1, 3),          # top edge (full width)
+            arr[: h // 2, :bw].reshape(-1, 3),   # upper-left edge
+            arr[: h // 2, -bw:].reshape(-1, 3),  # upper-right edge
         ],
         axis=0,
     )
-    return np.median(corners, axis=0)
+    return np.median(samples, axis=0)
 
 
 def estimate_head_geometry_from_plain_background(

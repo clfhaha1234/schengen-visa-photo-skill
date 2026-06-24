@@ -1,8 +1,13 @@
 # Schengen Visa Photo Skill
 
-AI-friendly CLI and skill for preparing Schengen (ICAO Doc 9303) visa photos from an input portrait. The CLI detects facial landmarks, computes a standards-based crop, exports a `413x531` JPEG (35x45mm at 300 DPI), and writes a machine-readable verification report explaining which requirements were checked.
+AI-friendly CLI and skill for preparing visa/ID photos from an input portrait. The CLI detects facial landmarks, computes a standards-based crop, exports a JPEG at the target standard's pixel size, and writes a machine-readable verification report explaining which requirements were checked.
 
-The standard is the same one used across all Schengen member states for short-stay visa applications. Keep real applicant photos out of this repository.
+Two standards are built in, selected with `--country`:
+
+- `schengen` (default) — Schengen / ICAO Doc 9303, `35x45mm` printed → `413x531` px at 300 DPI.
+- `japan` — Japan (MOFA) square photo, `45x45mm` → `531x531` px at 300 DPI.
+
+The Schengen standard is the one used across all Schengen member states for short-stay visa applications. Keep real applicant photos out of this repository.
 
 ## What It Does
 
@@ -28,6 +33,18 @@ The standard is the same one used across all Schengen member states for short-st
 
 Background, expression, lighting, and glasses are **visual** checks the operator must confirm; the CLI measures the geometric and file properties.
 
+## Requirements (Japan / MOFA)
+
+| Property | Standard |
+| --- | --- |
+| Print size | 45 mm × 45 mm (square) |
+| Digital size | 531 × 531 px (300 DPI) |
+| Head height (chin to crown) | 34 ± 2 mm (≈71–80% of height) |
+| Top of head to top edge | 4 ± 2 mm |
+| Background | plain, light, evenly lit, no shadows |
+
+Japan specifies head size and top clearance but **no eye-line position**, so the CLI reports the eye line for information only and never lets it override the authoritative top margin (`enforce_eye_band=False`). The same visual checks (background, neutral expression, no head covering) apply.
+
 ## Install
 
 ```bash
@@ -38,8 +55,14 @@ uv pip install -e '.[dev]'
 ## Use
 
 ```bash
+# Schengen (default)
 .venv/bin/schengen-visa-photo input.jpg --output outputs/input_schengen_visa.jpg --report outputs/input_report.json --diagnostic outputs/input_diagnostic.jpg
+
+# Japan 45x45mm square
+.venv/bin/schengen-visa-photo input.jpg --country japan --output outputs/input_japan_visa.jpg --report outputs/input_japan_report.json --diagnostic outputs/input_japan_diagnostic.jpg
 ```
+
+Select the target standard with `--country {schengen,japan}` (default `schengen`).
 
 The first live run downloads the MediaPipe face landmark model into `models/face_landmarker.task` unless `--model-path` points to an existing model file.
 
@@ -50,6 +73,22 @@ For review loops, use diagnostic mode. It writes the same artifacts but exits su
 ```
 
 Useful adjustment flags include `--target-head-height-px`, `--target-top-margin-px`, `--scale-multiplier`, `--nudge-x-px`, and `--nudge-y-px`.
+
+## Print Sheets
+
+Photo labs and drugstore kiosks (CVS, Walgreens, etc.) print on fixed photo paper such as `4x6` inch, not single ID photos. Add `--sheet` to also emit a print sheet that tiles copies of the validated photo onto one sheet with thin gray cut guides:
+
+```bash
+.venv/bin/schengen-visa-photo input.jpg --country japan \
+  --output outputs/input_japan_visa.jpg \
+  --sheet outputs/input_japan_sheet_4x6.jpg
+```
+
+- `--sheet PATH`: write the print sheet.
+- `--sheet-paper {4x6,10x15,5x7,13x18,a4}`: paper size (default `4x6` / `10x15 cm`).
+- `--sheet-gap-mm`: spacing between photos (default `2`).
+
+Each copy is tiled at native pixels (never rescaled) so the printed size stays exact, and the layout auto-picks the paper orientation that fits the most copies. On `4x6`: Japan `45x45mm` packs 6 (2×3), Schengen `35x45mm` packs 8 (4×2). Print "actual size" / "as is" (disable any fit-to-page scaling) and cut along the guides.
 
 ## Output
 
