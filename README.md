@@ -74,6 +74,22 @@ For review loops, use diagnostic mode. It writes the same artifacts but exits su
 
 Useful adjustment flags include `--target-head-height-px`, `--target-top-margin-px`, `--scale-multiplier`, `--nudge-x-px`, and `--nudge-y-px`.
 
+## Print Sheets
+
+Photo labs and drugstore kiosks (CVS, Walgreens, etc.) print on fixed photo paper such as `4x6` inch, not single ID photos. Add `--sheet` to also emit a print sheet that tiles copies of the validated photo onto one sheet with thin gray cut guides:
+
+```bash
+.venv/bin/schengen-visa-photo input.jpg --country japan \
+  --output outputs/input_japan_visa.jpg \
+  --sheet outputs/input_japan_sheet_4x6.jpg
+```
+
+- `--sheet PATH`: write the print sheet.
+- `--sheet-paper {4x6,10x15,5x7,13x18,a4}`: paper size (default `4x6` / `10x15 cm`).
+- `--sheet-gap-mm`: spacing between photos (default `2`).
+
+Each copy is tiled at native pixels (never rescaled) so the printed size stays exact, and the layout auto-picks the paper orientation that fits the most copies. On `4x6`: Japan `45x45mm` packs 6 (2×3), Schengen `35x45mm` packs 8 (4×2). Print "actual size" / "as is" (disable any fit-to-page scaling) and cut along the guides.
+
 ## Output
 
 The JSON report includes:

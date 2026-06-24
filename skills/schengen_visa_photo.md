@@ -55,6 +55,7 @@ The CLI exposes controlled crop adjustments for agent reruns:
 - `--scale-multiplier`: zoom in or out relative to the planned crop.
 - `--nudge-x-px` and `--nudge-y-px`: move the subject in output pixel coordinates.
 - `--no-prioritize-eye-position`: disable the ICAO eye-band priority adjustment for comparison or debugging.
+- `--sheet PATH` (with `--sheet-paper`, default `4x6`): also write a print sheet that tiles copies of the validated photo onto photo paper with cut guides, for lab/drugstore (CVS) printing. Native-pixel tiling keeps print size exact; orientation auto-fits the most copies (Japan 45×45mm → 6 per 4×6, Schengen 35×45mm → 8 per 4×6).
 
 ## Acceptance Criteria
 
